@@ -28,15 +28,19 @@ jobs:
 
       - name: Create standalone deployment package
         run: |
+          set -e
           rm -rf deploy_package
           mkdir -p deploy_package/.next
           # Next.js の standalone 出力（server.js を含む）をコピー
           cp -r .next/standalone/* deploy_package/
-          # 静的ファイルと BUILD_ID を配置
-          cp -r .next/static deploy_package/.next/
-          cp .next/BUILD_ID deploy_package/.next/
+          # 静的ファイルと BUILD_ID を配置（存在チェック付き）
+          if [ -d .next/static ]; then cp -r .next/static deploy_package/.next/; fi
+          cp .next/BUILD_ID deploy_package/.next/ || true
           # public があれば同梱
           if [ -d public ]; then cp -r public deploy_package/; fi
+          echo "Package tree:"
+          ls -la deploy_package
+          ls -la deploy_package/.next || true
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -56,7 +60,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
-          path: deploy_package # deploy_package フォルダとしてダウンロード
+          path: deploy_package
+
+      - name: Inspect downloaded package
+        run: |
+          ls -la
+          ls -la deploy_package
+          ls -la deploy_package/.next || true
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -64,5 +74,5 @@ jobs:
         with:
           app-name: 'app-002-gen10-step3-1-node-oshima32'
           slot-name: 'Production'
-          package: deploy_package # deploy_package フォルダの中身を展開
+          package: deploy_package
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_3F439D1B174E4D238B789730743BCF19 }}
