@@ -35,24 +35,35 @@ jobs:
           # 1) standalone の中身（server.js, node_modules 等）をルートへ配置
           cp -r .next/standalone/* deploy_package/
 
-          # 2) 静的ファイルと BUILD_ID を .next に補完
+          # 2) .next の静的アセットと BUILD_ID
           if [ -d .next/static ]; then cp -r .next/static deploy_package/.next/; fi
           cp .next/BUILD_ID deploy_package/.next/ || true
 
-          # 3) サーバが参照する .next のメタJSONをコピー（不足すると ENOENT）
+          # 3) ルート直下のメタJSON（不足すると ENOENT）
           for f in routes-manifest.json app-build-manifest.json build-manifest.json prerender-manifest.json middleware-manifest.json; do
             if [ -f ".next/$f" ]; then
               cp ".next/$f" "deploy_package/.next/"
             fi
           done
 
-          # 4) public があれば同梱
+          # 4) サーバ側の成果物（Next 15 で参照されるため一式コピー）
+          #    代表的なディレクトリを網羅して存在するものだけコピー
+          for d in server server/app server/chunks server/functions server/pages server/middleware server/flight server/edge-server; do
+            if [ -d ".next/$d" ]; then
+              mkdir -p "deploy_package/.next/$d"
+              cp -r ".next/$d/"* "deploy_package/.next/$d/" || true
+            fi
+          done
+
+          # 5) public があれば同梱
           if [ -d public ]; then cp -r public deploy_package/; fi
 
           echo "Package tree:"
           ls -la deploy_package
           echo ".next content:"
           ls -la deploy_package/.next || true
+          echo ".next/server content:"
+          ls -la deploy_package/.next/server || true
 
       - name: Archive deploy_package to zip
         run: |
