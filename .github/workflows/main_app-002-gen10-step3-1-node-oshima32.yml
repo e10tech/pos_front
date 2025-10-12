@@ -62,10 +62,24 @@ jobs:
           name: node-app
           path: deploy_package
 
-      - name: Inspect downloaded package
+      - name: Inspect downloaded package (deep)
         run: |
+          echo "Top level:"
           ls -la
+          echo ""
+          echo "deploy_package:"
           ls -la deploy_package
+          echo ""
+          echo "Search .next directory within deploy_package (up to 3 levels)"
+          find deploy_package -maxdepth 3 -type d -name ".next" -print
+          echo ""
+          echo "Search BUILD_ID file within deploy_package (up to 4 levels)"
+          find deploy_package -maxdepth 4 -type f -name "BUILD_ID" -print
+          echo ""
+          echo "Search static directory within deploy_package (up to 4 levels)"
+          find deploy_package -maxdepth 4 -type d -name "static" -print
+          echo ""
+          echo "List deploy_package/.next if exists"
           ls -la deploy_package/.next || true
 
       - name: Deploy to Azure Web App
