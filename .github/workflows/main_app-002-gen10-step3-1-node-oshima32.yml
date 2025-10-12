@@ -19,26 +19,27 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
+          node-version: '22.x' # ご希望のバージョンに設定
 
       - name: npm install and build
         run: |
           npm install
           npm run build
 
-      # --- ここが最も重要な変更点です ---
+      # --- ここが最後の修正点です ---
       - name: Create standalone deployment package
         run: |
           mkdir -p deploy_package/.next
           cp -r .next/standalone/* deploy_package/
           cp -r .next/static deploy_package/.next/
           cp -r public deploy_package/
-      
+          cp .next/BUILD_ID deploy_package/.next/ # BUILD_IDファイルをコピーする一行を追加
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: deploy_package # deploy_packageフォルダをアップロード
+          path: deploy_package
       # --- ここまで ---
 
   deploy:
