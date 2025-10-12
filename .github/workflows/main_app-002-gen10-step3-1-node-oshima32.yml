@@ -42,11 +42,19 @@ jobs:
           ls -la deploy_package
           ls -la deploy_package/.next || true
 
+      - name: Archive deploy_package to zip
+        run: |
+          cd deploy_package
+          zip -r ../deploy_package.zip .
+          cd ..
+          echo "Zip content preview:"
+          unzip -l deploy_package.zip | sed -n '1,200p'
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: deploy_package
+          path: deploy_package.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -60,27 +68,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
-          path: deploy_package
+          path: .
 
-      - name: Inspect downloaded package (deep)
+      - name: Inspect downloaded zip
         run: |
-          echo "Top level:"
           ls -la
-          echo ""
-          echo "deploy_package:"
-          ls -la deploy_package
-          echo ""
-          echo "Search .next directory within deploy_package (up to 3 levels)"
-          find deploy_package -maxdepth 3 -type d -name ".next" -print
-          echo ""
-          echo "Search BUILD_ID file within deploy_package (up to 4 levels)"
-          find deploy_package -maxdepth 4 -type f -name "BUILD_ID" -print
-          echo ""
-          echo "Search static directory within deploy_package (up to 4 levels)"
-          find deploy_package -maxdepth 4 -type d -name "static" -print
-          echo ""
-          echo "List deploy_package/.next if exists"
-          ls -la deploy_package/.next || true
+          unzip -l deploy_package.zip | sed -n '1,200p'
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -88,5 +81,5 @@ jobs:
         with:
           app-name: 'app-002-gen10-step3-1-node-oshima32'
           slot-name: 'Production'
-          package: deploy_package
+          package: deploy_package.zip
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_3F439D1B174E4D238B789730743BCF19 }}
