@@ -49,7 +49,11 @@ export default function HomePage() {
     },
     onError(error) {
       console.error("Camera Error:", error);
-      setModal({ type: 'error', message: `カメラの起動に失敗しました: ${error.message}` });
+      let errorMessage = 'カメラの起動に失敗しました';
+      if (error instanceof Error) {
+        errorMessage = `カメラの起動に失敗しました: ${error.message}`;
+      }
+      setModal({ type: 'error', message: errorMessage });
       setIsScanning(false);
     },
   });
@@ -73,6 +77,8 @@ export default function HomePage() {
       setIsManualInput(false);
       setManualCode("");
     } catch (err) {
+      // ↓↓↓ ESLint Warning (no-unused-vars) 解消のため、エラーをコンソールに出力 ↓↓↓
+      console.error("Failed to fetch product:", err);
       setApiError("APIサーバーに接続できませんでした");
     }
   }, []);
@@ -102,8 +108,13 @@ export default function HomePage() {
       const result: TransactionResult = await response.json();
       setTransactionResult(result);
       setModal({ type: 'complete' });
-    } catch (err: any) {
-      setModal({ type: 'error', message: err.message || '予期せぬエラーが発生しました。' });
+    } catch (err) {
+      // ↓↓↓ ESLint Error (no-explicit-any) 解消のため、型ガードを導入 ↓↓↓
+      let message = '予期せぬエラーが発生しました。';
+      if (err instanceof Error) {
+        message = err.message;
+      }
+      setModal({ type: 'error', message });
     }
   };
 
