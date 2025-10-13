@@ -17,16 +17,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ----------------------------------------------------
-      # ご要望に基づき、Azure App Serviceの環境に合わせて
-      # Node.jsのバージョンを '22.x' に設定します。
-      # ----------------------------------------------------
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
 
       - name: Install dependencies and build
+        env:
+          # ----------------------------------------------------
+          # 修正点: secretsの名前をGitHubに登録済みのものに修正
+          # ----------------------------------------------------
+          NEXT_PUBLIC_API_ENDPOINT: ${{ secrets.NEXT_PUBLIC_API_ENDPOINT }}
         run: |
           npm ci
           npm run build
