@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useZxing } from "react-zxing";
 
 // --- 型定義 ---
@@ -39,6 +39,14 @@ export default function HomePage() {
 
   const [apiError, setApiError] = useState<string | null>(null);
 
+  const cameraConstraints = useMemo<MediaStreamConstraints>(
+    () => ({
+      audio: false,
+      video: { facingMode: { ideal: "environment" } },
+    }),
+    []
+  );
+
   // --- バーコードスキャナ ---
   const { ref } = useZxing({
     onDecodeResult(result) {
@@ -56,7 +64,25 @@ export default function HomePage() {
       setModal({ type: 'error', message: errorMessage });
       setIsScanning(false);
     },
+    paused: !isScanning,
+    constraints: cameraConstraints,
   });
+
+  // スキャナを閉じた際にカメラストリームを解放
+  useEffect(() => {
+    if (isScanning) {
+      return;
+    }
+    const videoElement = ref.current;
+    if (!videoElement) {
+      return;
+    }
+    const stream = videoElement.srcObject;
+    if (stream instanceof MediaStream) {
+      stream.getTracks().forEach((track) => track.stop());
+      videoElement.srcObject = null;
+    }
+  }, [isScanning, ref]);
 
   // --- API通信 ---
   const fetchProduct = useCallback(async (code: string) => {
@@ -217,7 +243,7 @@ export default function HomePage() {
         <div className="fixed inset-0 bg-black/70 z-50 flex flex-col items-center justify-center">
           <div className="w-11/12 max-w-sm bg-white p-5 rounded-2xl">
             <p className="text-center text-lg font-semibold mb-4">バーコードをスキャン</p>
-            <video ref={ref} className="w-full rounded-lg" />
+            <video ref={ref} className="w-full rounded-lg" autoPlay muted playsInline />
             <button onClick={() => setIsScanning(false)} className="mt-4 w-full rounded-lg bg-gray-200 py-2.5 font-semibold text-gray-700 hover:bg-gray-300">
               キャンセル
             </button>
@@ -233,7 +259,7 @@ export default function HomePage() {
 
         <section className="flex flex-col gap-4 rounded-3xl bg-brand-card p-5 shadow-[0_12px_28px_rgba(3,2,19,0.08)] ring-1 ring-brand-border/50">
           <button onClick={() => { setIsScanning(true); setIsManualInput(false); }} className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-ink py-3.5 text-sm font-semibold text-white shadow-[0_6px_0_rgba(3,2,19,0.12)] transition-all duration-150 hover:opacity-90 active:shadow-[0_2px_0_rgba(3,2,19,0.12)] active:translate-y-1">
-            <Image src="/icons/camera.svg" alt="" width={20} height={20} className="invert"/>
+            <Image src="/icons/camera.svg" alt="" width={20} height={20} />
             <span>スキャン（カメラ）</span>
           </button>
           
