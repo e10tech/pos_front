@@ -19,7 +19,6 @@ export const metadata: Metadata = {
 };
 
 const AppHeader = () => (
-  // rounded-b-[32px] を削除
   <header className="flex-shrink-0 bg-gradient-to-b from-[#C9CEDA] to-[#C3C7D4] px-6 py-5 text-center shadow-[0_4px_12px_rgba(3,2,19,0.08)]">
     <h1 className="text-sm font-semibold tracking-[0.08em] text-brand-ink">
       『イベント名称』専用購入アプリ
@@ -37,12 +36,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-brand-surface antialiased`}
       >
-        <div className="flex min-h-screen justify-center md:px-4">
-          <div className="app-frame flex w-full max-w-[440px] flex-col">
+        <div className="flex h-screen justify-center lg:px-4">
+          <div className="app-frame flex w-full flex-col lg:max-w-5xl">
             {/* メインのスクロールエリア */}
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex flex-1 flex-col overflow-y-auto">
               <AppHeader />
-              <div className="px-5 py-5">{children}</div>
+              <div className="flex flex-1 flex-col px-5 py-5">{children}</div>
             </main>
             {/* フッターはスクロールエリアの外に出す */}
             <AppFooter />
