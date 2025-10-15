@@ -38,6 +38,8 @@ export default function HomePage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+  const [isProcessingPurchase, setIsProcessingPurchase] = useState(false);
   const [isAutoAdded, setIsAutoAdded] = useState(false);
 
   const cameraConstraints = useMemo<MediaStreamConstraints>(
@@ -91,11 +93,12 @@ export default function HomePage() {
     setProduct(null);
     setApiError(null);
     setIsAutoAdded(false);
-    if (!code) {
-      setModal({ type: 'error', message: '商品情報を入力してください' });
-      return;
-    }
+    setIsLoadingProduct(true);
     try {
+      if (!code) {
+        setModal({ type: 'error', message: '商品情報を入力してください' });
+        return;
+      }
       const response = await fetch(`${API_ENDPOINT}/products/${code}`);
       if (!response.ok) {
         setApiError(response.status === 404 ? "商品が見つかりませんでした" : "商品の取得に失敗しました");
@@ -113,10 +116,13 @@ export default function HomePage() {
       // ↓↓↓ ESLint Warning (no-unused-vars) 解消のため、エラーをコンソールに出力 ↓↓↓
       console.error("Failed to fetch product:", err);
       setApiError("APIサーバーに接続できませんでした");
+    } finally {
+      setIsLoadingProduct(false);
     }
   }, []);
   
   const handleConfirmPurchase = async () => {
+    setIsProcessingPurchase(true);
     try {
       const response = await fetch(`${API_ENDPOINT}/purchase/`, {
         method: 'POST',
@@ -148,6 +154,8 @@ export default function HomePage() {
         message = err.message;
       }
       setModal({ type: 'error', message });
+    } finally {
+      setIsProcessingPurchase(false);
     }
   };
 
@@ -163,11 +171,12 @@ export default function HomePage() {
 
   const handlePurchaseClick = () => {
     if (purchaseList.length === 0) { setModal({ type: 'error', message: '商品がリストに追加されていません' }); return; }
+    setIsProcessingPurchase(false);
     setModal({ type: 'confirm' });
   };
   
   const closeAllModalsAndReset = () => {
-    setModal({ type: null }); setPurchaseList([]); setTransactionResult(null); setIsReceived(false);
+    setModal({ type: null }); setPurchaseList([]); setTransactionResult(null); setIsReceived(false); setIsProcessingPurchase(false);
   };
 
   const totalAmount = purchaseList.reduce((sum, item) => sum + item.PRICE, 0);
@@ -196,8 +205,15 @@ export default function HomePage() {
               <button onClick={() => setModal({ type: null })} className="flex-1 rounded-xl bg-gray-200 py-3 text-gray-700 font-semibold hover:bg-gray-300">
                 キャンセル
               </button>
-              <button onClick={handleConfirmPurchase} className="flex-1 rounded-xl bg-brand-ink py-3 text-white font-semibold hover:opacity-90">
-                購入する
+              <button onClick={handleConfirmPurchase} disabled={isProcessingPurchase} className="flex-1 rounded-xl bg-brand-ink py-3 text-white font-semibold hover:opacity-90 disabled:opacity-70 disabled:cursor-not-allowed">
+                {isProcessingPurchase ? (
+                  <span className="flex items-center justify-center gap-2 text-sm">
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"></span>
+                    <span>処理中...</span>
+                  </span>
+                ) : (
+                  "購入する"
+                )}
               </button>
             </div>
           </div>
@@ -276,7 +292,7 @@ export default function HomePage() {
           {!isManualInput ? ( <button onClick={() => { setIsManualInput(true); setProduct(null); setScannedCode(null); setIsAutoAdded(false); }} className="text-center text-sm text-brand-muted hover:underline">手動で入力する</button> ) : (
             <div className="flex flex-col gap-2.5">
               <input type="text" value={manualCode} onChange={(e) => setManualCode(e.target.value)} placeholder="バーコード番号を入力" className="rounded-xl border border-brand-border bg-white px-4 py-3 text-center text-sm font-semibold tracking-widest" />
-              <button onClick={() => fetchProduct(manualCode.trim())} className="rounded-xl bg-brand-muted/20 py-2.5 text-sm font-semibold text-brand-ink hover:bg-brand-muted/30">検索</button>
+              <button onClick={() => fetchProduct(manualCode.trim(), { autoAdd: true })} disabled={isLoadingProduct} className="rounded-xl bg-brand-muted/20 py-2.5 text-sm font-semibold text-brand-ink hover:bg-brand-muted/30 disabled:opacity-50 disabled:cursor-not-allowed">検索</button>
             </div>
           )}
 
@@ -285,8 +301,14 @@ export default function HomePage() {
             <div className="rounded-xl border border-brand-border bg-brand-chip px-4 py-3 text-center text-sm font-medium text-brand-muted">{product?.NAME || "商品名"}</div>
             <div className="rounded-xl border border-brand-border bg-brand-chip px-4 py-3 text-center text-sm font-medium text-brand-muted">{product ? `¥ ${product.PRICE.toLocaleString()}` : "単価"}</div>
           </div>
+          {isLoadingProduct && (
+            <div className="flex items-center justify-center gap-2 text-sm text-brand-muted">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-brand-ink" aria-hidden="true"></span>
+              <span>商品情報を取得しています...</span>
+            </div>
+          )}
           {apiError && <p className="text-center text-sm text-red-500">{apiError}</p>}
-          <button onClick={handleAddItemToList} disabled={!product || isAutoAdded} className="w-full rounded-2xl bg-brand-ink py-3 text-sm font-semibold text-white shadow-[0_6px_0_rgba(3,2,19,0.12)] transition-all duration-150 hover:opacity-90 active:shadow-[0_2px_0_rgba(3,2,19,0.12)] active:translate-y-1 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0">{isAutoAdded ? "自動追加済み" : "追加"}</button>
+          <button onClick={handleAddItemToList} disabled={!product || isAutoAdded || isLoadingProduct} className="w-full rounded-2xl bg-brand-ink py-3 text-sm font-semibold text-white shadow-[0_6px_0_rgba(3,2,19,0.12)] transition-all duration-150 hover:opacity-90 active:shadow-[0_2px_0_rgba(3,2,19,0.12)] active:translate-y-1 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0">{isAutoAdded ? "自動追加済み" : "追加"}</button>
         </section>
 
         <section className="flex flex-1 flex-col gap-4 rounded-3xl bg-brand-card p-5 shadow-[0_12px_28px_rgba(3,2,19,0.08)] ring-1 ring-brand-border/50">
