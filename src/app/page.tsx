@@ -38,6 +38,7 @@ export default function HomePage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isAutoAdded, setIsAutoAdded] = useState(false);
 
   const cameraConstraints = useMemo<MediaStreamConstraints>(
     () => ({
@@ -52,7 +53,7 @@ export default function HomePage() {
     onDecodeResult(result) {
       const code = result.getText();
       setScannedCode(code);
-      fetchProduct(code);
+      fetchProduct(code, { autoAdd: true });
       setIsScanning(false);
     },
     onError(error) {
@@ -85,9 +86,11 @@ export default function HomePage() {
   }, [isScanning, ref]);
 
   // --- API通信 ---
-  const fetchProduct = useCallback(async (code: string) => {
+  const fetchProduct = useCallback(async (code: string, options?: { autoAdd?: boolean }) => {
+    const { autoAdd = false } = options ?? {};
     setProduct(null);
     setApiError(null);
+    setIsAutoAdded(false);
     if (!code) {
       setModal({ type: 'error', message: '商品情報を入力してください' });
       return;
@@ -102,6 +105,10 @@ export default function HomePage() {
       setProduct(data);
       setIsManualInput(false);
       setManualCode("");
+      if (autoAdd) {
+        setPurchaseList((prev) => [...prev, data]);
+        setIsAutoAdded(true);
+      }
     } catch (err) {
       // ↓↓↓ ESLint Warning (no-unused-vars) 解消のため、エラーをコンソールに出力 ↓↓↓
       console.error("Failed to fetch product:", err);
@@ -148,7 +155,10 @@ export default function HomePage() {
   const handleAddItemToList = () => {
     if (!product) { setModal({ type: 'error', message: '追加する商品がありません' }); return; }
     setPurchaseList((prev) => [...prev, product]);
-    setProduct(null); setScannedCode(null); setApiError(null);
+    setProduct(null);
+    setScannedCode(null);
+    setApiError(null);
+    setIsAutoAdded(false);
   };
 
   const handlePurchaseClick = () => {
@@ -258,12 +268,12 @@ export default function HomePage() {
         </section>
 
         <section className="flex flex-col gap-4 rounded-3xl bg-brand-card p-5 shadow-[0_12px_28px_rgba(3,2,19,0.08)] ring-1 ring-brand-border/50">
-          <button onClick={() => { setIsScanning(true); setIsManualInput(false); }} className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-ink py-3.5 text-sm font-semibold text-white shadow-[0_6px_0_rgba(3,2,19,0.12)] transition-all duration-150 hover:opacity-90 active:shadow-[0_2px_0_rgba(3,2,19,0.12)] active:translate-y-1">
+          <button onClick={() => { setIsScanning(true); setIsManualInput(false); setIsAutoAdded(false); }} className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand-ink py-3.5 text-sm font-semibold text-white shadow-[0_6px_0_rgba(3,2,19,0.12)] transition-all duration-150 hover:opacity-90 active:shadow-[0_2px_0_rgba(3,2,19,0.12)] active:translate-y-1">
             <Image src="/icons/camera.svg" alt="" width={20} height={20} />
             <span>スキャン（カメラ）</span>
           </button>
           
-          {!isManualInput ? ( <button onClick={() => { setIsManualInput(true); setProduct(null); setScannedCode(null); }} className="text-center text-sm text-brand-muted hover:underline">手動で入力する</button> ) : (
+          {!isManualInput ? ( <button onClick={() => { setIsManualInput(true); setProduct(null); setScannedCode(null); setIsAutoAdded(false); }} className="text-center text-sm text-brand-muted hover:underline">手動で入力する</button> ) : (
             <div className="flex flex-col gap-2.5">
               <input type="text" value={manualCode} onChange={(e) => setManualCode(e.target.value)} placeholder="バーコード番号を入力" className="rounded-xl border border-brand-border bg-white px-4 py-3 text-center text-sm font-semibold tracking-widest" />
               <button onClick={() => fetchProduct(manualCode.trim())} className="rounded-xl bg-brand-muted/20 py-2.5 text-sm font-semibold text-brand-ink hover:bg-brand-muted/30">検索</button>
@@ -276,7 +286,7 @@ export default function HomePage() {
             <div className="rounded-xl border border-brand-border bg-brand-chip px-4 py-3 text-center text-sm font-medium text-brand-muted">{product ? `¥ ${product.PRICE.toLocaleString()}` : "単価"}</div>
           </div>
           {apiError && <p className="text-center text-sm text-red-500">{apiError}</p>}
-          <button onClick={handleAddItemToList} disabled={!product} className="w-full rounded-2xl bg-brand-ink py-3 text-sm font-semibold text-white shadow-[0_6px_0_rgba(3,2,19,0.12)] transition-all duration-150 hover:opacity-90 active:shadow-[0_2px_0_rgba(3,2,19,0.12)] active:translate-y-1 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0">追加</button>
+          <button onClick={handleAddItemToList} disabled={!product || isAutoAdded} className="w-full rounded-2xl bg-brand-ink py-3 text-sm font-semibold text-white shadow-[0_6px_0_rgba(3,2,19,0.12)] transition-all duration-150 hover:opacity-90 active:shadow-[0_2px_0_rgba(3,2,19,0.12)] active:translate-y-1 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0">{isAutoAdded ? "自動追加済み" : "追加"}</button>
         </section>
 
         <section className="flex flex-1 flex-col gap-4 rounded-3xl bg-brand-card p-5 shadow-[0_12px_28px_rgba(3,2,19,0.08)] ring-1 ring-brand-border/50">
