@@ -226,7 +226,7 @@ export default function HomePage() {
       )}
 
       {/* ===== メインコンテンツ ===== */}
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-1 flex-col gap-6">
         <section className="grid grid-cols-3 gap-2.5">
           {statusChips.map((chip) => ( <div key={chip} className="rounded-full bg-brand-chip px-3 py-2 text-center text-[11px] font-semibold text-brand-ink ring-1 ring-brand-border/50">{chip}</div> ))}
         </section>
@@ -253,12 +253,12 @@ export default function HomePage() {
           <button onClick={handleAddItemToList} disabled={!product} className="w-full rounded-2xl bg-brand-ink py-3 text-sm font-semibold text-white shadow-[0_6px_0_rgba(3,2,19,0.12)] transition-all duration-150 hover:opacity-90 active:shadow-[0_2px_0_rgba(3,2,19,0.12)] active:translate-y-1 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0">追加</button>
         </section>
 
-        <section className="flex flex-col gap-4 rounded-3xl bg-brand-card p-5 shadow-[0_12px_28px_rgba(3,2,19,0.08)] ring-1 ring-brand-border/50">
+        <section className="flex flex-1 flex-col gap-4 rounded-3xl bg-brand-card p-5 shadow-[0_12px_28px_rgba(3,2,19,0.08)] ring-1 ring-brand-border/50">
           <div className="flex justify-between items-center">
             <h2 className="flex items-center gap-2 text-base font-semibold text-brand-ink"><Image src="/icons/cart.svg" alt="" width={20} height={20} /><span>購入リスト</span></h2>
             <div className="text-sm font-semibold">合計: <span className="text-lg">¥{totalAmount.toLocaleString()}</span></div>
           </div>
-          <div className="min-h-[120px] rounded-xl border border-brand-border bg-brand-chip p-2">
+          <div className="flex-1 rounded-xl border border-brand-border bg-brand-chip p-2 overflow-y-auto">
             {purchaseList.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm font-medium text-brand-muted">商品が追加されていません</div>
             ) : (
